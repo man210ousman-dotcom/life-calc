@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Life Calc</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #00f5ff, #7f00ff, #ff00cc);
+  background-size: 400% 400%;
+  animation: bg 12s ease infinite;
+  color: #fff;
+}
+
+@keyframes bg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  padding: 25px;
+}
+
+.card {
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+h1, h2 {
+  text-align: center;
+  background: linear-gradient(90deg,#00f5ff,#ffea00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.menu-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.menu {
+  display: none;
+  position: fixed;
+  top: 50px;
+  right: 15px;
+  background: #111;
+  border-radius: 10px;
+  width: 210px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+.menu div {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+}
+.menu div:hover { background:#222; }
+.menu div:last-child { border-bottom:none; }
+
+label { display:block; margin-top:10px; }
+input, select {
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border-radius:8px;
+  border:none;
+}
+
+button {
+  width:100%;
+  margin-top:15px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  background: linear-gradient(90deg,#00ffcc,#ffea00);
+  cursor:pointer;
+}
+
+.page { display:none; }
+.page.active { display:block; }
+
+.result { margin-top:12px; font-size:14px; line-height:1.6; }
+span { color:#00ffcc; font-weight:bold; }
+hr { border: 0; border-top: 1px solid #444; margin: 12px 0; }
+</style>
+</head>
+
+<body>
+
+<div class="menu-btn" onclick="toggleMenu()">⋮</div>
+
+<div class="menu" id="menu">
+  <div onclick="go('home')">🏠 Home</div>
+  <div onclick="go('life')">🧬 Life Calculator</div>
+  <div onclick="go('time')">🧮 Time Converter</div>
+  <div onclick="go('heart')">❤️ Heartbeats</div>
+  <div onclick="showHistory()">📜 History</div>
+  <div onclick="shareLast()">🔗 Share</div>
+</div>
+
+<div class="container">
+
+<!-- LANDING -->
+<div id="home" class="page active card">
+  <h1>Life Calc</h1>
+  <p>
+    Life Calc helps you understand time — your life, moments, and years —
+    in ways numbers alone never could.
+  </p>
+  <ul>
+    <li>🧬 See exactly how long you’ve lived</li>
+    <li>🧮 Convert time between any units</li>
+    <li>❤️ Calculate your heartbeats</li>
+    <li>🔗 Share stats with friends</li>
+  </ul>
+  <button onclick="go('life')">Start</button>
+</div>
+
+<!-- LIFE CALCULATOR -->
+<div id="life" class="page card">
+  <h2>Life Time Calculator</h2>
+
+  <label>Date of Birth</label>
+  <input type="date" id="dob">
+
+  <label>Time of Birth (optional)</label>
+  <input type="time" id="tob">
+
+  <button onclick="calcLife()">Calculate</button>
+  <div class="result" id="lifeResult"></div>
+</div>
+
+<!-- TIME CONVERTER -->
+<div id="time" class="page card">
+  <h2>Time Converter</h2>
+
+  <input id="tcValue1" placeholder="Number">
+  <select id="tcUnit1">
+    <option>seconds</option><option>minutes</option><option>hours</option>
+    <option>days</option><option>weeks</option><option>months</option><option>years</option>
+  </select>
+
+  <input id="tcValue2" placeholder="Result" disabled>
+  <select id="tcUnit2">
+    <option>seconds</option><option>minutes</option><option>hours</option>
+    <option>days</option><option>weeks</option><option>months</option><option>years</option>
+  </select>
+
+  <button onclick="convertTime()">Convert</button>
+</div>
+
+<!-- HEARTBEAT -->
+<div id="heart" class="page card">
+  <h2>Heartbeat Calculator</h2>
+
+  <input id="hbYears" placeholder="Years">
+  <input id="hbBpm" placeholder="Beats per minute (optional)">
+
+  <button onclick="calcHeart()">Calculate</button>
+  <div class="result" id="hbResult"></div>
+</div>
+
+</div>
+
+<script>
+const units = {
+  milliseconds: 0.001,
+  seconds: 1,
+  minutes: 60,
+  hours: 3600,
+  days: 86400,
+  weeks: 604800,
+  months: 2629800,
+  years: 31557600
+};
+
+let lastLifeText = "";
+
+function toggleMenu() {
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function go(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(page).classList.add("active");
+  menu.style.display = "none";
+}
+
+function calcLife() {
+  const dob = document.getElementById("dob").value;
+  const tob = document.getElementById("tob").value || "12:00";
+  if (!dob) return;
+
+  const birth = new Date(dob + "T" + tob);
+  const now = new Date();
+  let ms = now - birth;
+  let s = Math.floor(ms / 1000);
+
+  const y = Math.floor(s / units.years); s %= units.years;
+  const mo = Math.floor(s / units.months); s %= units.months;
+  const w = Math.floor(s / units.weeks); s %= units.weeks;
+  const d = Math.floor(s / units.days); s %= units.days;
+  const h = Math.floor(s / 3600); s %= 3600;
+  const m = Math.floor(s / 60); s %= 60;
+
+  lastLifeText = `${y} years, ${mo} months, ${w} weeks, ${d} days, ${m} minutes, ${s} seconds`;
+
+  saveHistory(lastLifeText);
+
+  lifeResult.innerHTML = `
+    <strong>${lastLifeText}</strong>
+    <hr>
+    <p><span>${ms.toLocaleString()}</span> milliseconds</p>
+    <p><span>${Math.floor(ms/1000).toLocaleString()}</span> seconds</p>
+    <p><span>${Math.floor(ms/60000).toLocaleString()}</span> minutes</p>
+    <p><span>${Math.floor(ms/3600000).toLocaleString()}</span> hours</p>
+    <p><span>${Math.floor(ms/86400000).toLocaleString()}</span> days</p>
+    <p><span>${Math.floor(ms/604800000).toLocaleString()}</span> weeks</p>
+    <p><span>${Math.floor(ms/2629800000).toLocaleString()}</span> months</p>
+    <p><span>${Math.floor(ms/31557600000).toLocaleString()}</span> years</p>
+  `;
+}
+
+function convertTime() {
+  const v = parseFloat(tcValue1.value);
+  if (isNaN(v)) return;
+  const seconds = v * units[tcUnit1.value];
+  tcValue2.value = (seconds / units[tcUnit2.value]).toLocaleString();
+}
+
+function calcHeart() {
+  const y = parseFloat(hbYears.value);
+  if (isNaN(y)) return;
+  const bpm = parseFloat(hbBpm.value) || 72;
+  const beats = y * 365.25 * 24 * 60 * bpm;
+  hbResult.innerHTML = `<span>${beats.toLocaleString()}</span> heartbeats`;
+}
+
+function saveHistory(text) {
+  const h = JSON.parse(localStorage.getItem("lifeHistory") || "[]");
+  h.unshift(text);
+  localStorage.setItem("lifeHistory", JSON.stringify(h.slice(0,10)));
+}
+
+function showHistory() {
+  const h = JSON.parse(localStorage.getItem("lifeHistory") || "[]");
+  alert(h.length ? h.join("\n") : "No history yet");
+}
+
+function shareLast() {
+  if (!lastLifeText) return alert("Nothing to share yet");
+  const msg = `🧬 I've lived ${lastLifeText} — calculated using Life Calc`;
+  navigator.share ? navigator.share({text:msg}) : navigator.clipboard.writeText(msg);
+}
+</script>
+
+</body>
+</html>
